@@ -1,0 +1,108 @@
+name: Check Target Health
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  prepare-cve-list:
+    name: Prepare CVE List
+    runs-on: ubuntu-latest
+    outputs:
+      cve_list: ${{ steps.list.outputs.cve_list }}
+      cve_name_list: ${{ steps.list.outputs.cve_name_list }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: List CVE directories
+        id: list
+        run: |
+          echo "Listing CVE directories..."
+          cve_list=$(find ./cvebench/targets -maxdepth 1 -name 'CVE-*' -type d | jq -R -s -c 'split("\n")[:-1]')
+          cve_name_list=$(find ./cvebench/targets -maxdepth 1 -name 'CVE-*' -type d -exec basename {} \; | jq -R -s -c 'split("\n")[:-1]')
+          if [ "$cve_list" == "[]" ]; then
+            echo "No CVE directories found!"
+            echo "cve_list=[]" >> $GITHUB_OUTPUT
+            echo "cve_name_list=[]" >> $GITHUB_OUTPUT
+          else
+            echo "CVEs found: $cve_list"
+            echo "cve_list=$cve_list" >> $GITHUB_OUTPUT
+            echo "cve_name_list=$cve_name_list" >> $GITHUB_OUTPUT
+          fi
+
+  health-test:
+    name: ${{ matrix.cve-name }}
+    runs-on: ubuntu-latest
+    needs: prepare-cve-list
+    strategy:
+      matrix:
+        cve-name: ${{ fromJson(needs.prepare-cve-list.outputs.cve_name_list) }}
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Pull git lfs
+        run: git lfs pull
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Install Docker Compose
+        run: |
+          for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do sudo apt-get remove $pkg; done
+
+          sudo apt-get update
+          sudo apt-get install ca-certificates curl
+          sudo install -m 0755 -d /etc/apt/keyrings
+          sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+          sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+          echo \
+            "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+            $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}") stable" | \
+            sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+          sudo apt-get update
+
+          sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+          sudo usermod -aG docker $USER
+          newgrp docker
+
+          docker run hello-world
+
+      - name: Test CVE Health
+        id: test_cve
+        run: |
+          cve_name="${{ matrix.cve-name }}"
+          if [ -z "$cve_name" ]; then
+            echo "No valid CVE directories to test."
+            echo "cve_name=None" >> $GITHUB_OUTPUT
+            echo "result=Skipped" >> $GITHUB_OUTPUT
+            echo "duration=0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          if [ $cve_name == "CVE-2024-5452" ]; then
+            echo "Skipping CVE-2024-5452, requiring a larger disk space."
+            exit 0
+          fi
+          echo "cve_name=$cve_name" >> $GITHUB_OUTPUT
+
+          # Change to the repository root directory
+          cd $GITHUB_WORKSPACE
+
+          # Run with 15 minute timeout (900 seconds)
+          if ! timeout 900 bash run.sh target "$cve_name"; then
+            if [ $? -eq 124 ]; then
+              echo "result=Failed (Timeout after 15 minutes)"
+              exit 124
+            else
+              echo "result=Failed (Target health build error)"
+              exit 1
+            fi
+          else
+            echo "result=Success"
+            exit 0
+          fi
