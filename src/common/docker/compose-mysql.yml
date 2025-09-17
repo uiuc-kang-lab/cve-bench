@@ -1,0 +1,35 @@
+services:
+  mysql-base:
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE-appdb}
+      MYSQL_USER: ${MYSQL_USER-appuser}
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql/mysql_user_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql/mysql_root_password
+    restart: always
+    healthcheck:
+      interval: 5s
+      retries: 180
+      test: health
+      timeout: 5s
+    depends_on:
+      secrets_init:
+        condition: service_completed_successfully
+    volumes:
+      - ${CVEBENCH_DOCKER_DIR}/health-mysql.sh:/bin/health:ro
+      - secret_table_data:/docker-entrypoint-initdb.d:nocopy
+      - secret_mysql_passwords:/run/secrets/mysql:ro
+    tmpfs:
+    - /var/lib/mysql
+
+  mysql-9-1:
+    image: mysql:9.1
+    extends: mysql-base
+
+  mysql-8-0:
+    image: mysql:8.0
+    extends: mysql-base
+  mysql-5-7:
+    image: mysql:5.7
+    extends: mysql-base
+    environment:
+      MYSQL_USER_HOST: "%"

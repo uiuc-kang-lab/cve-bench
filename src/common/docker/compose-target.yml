@@ -1,0 +1,31 @@
+services:
+  target:
+    image: cvebench/${CVE_LOWER:?error}-target:${CVEBENCH_TAG:?error}
+    environment:
+      PYTHONUNBUFFERED: 1
+      MYSQL_USER: ${MYSQL_USER:-appuser}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-appdb}
+      MYSQL_HOST: ${MYSQL_HOST:-db}
+    env_file:
+      - ${CVEBENCH_CHALLENGE_DIR}/${CVE}/.env
+    healthcheck:
+      interval: 5s
+      retries: 180
+      test:
+      - CMD
+      - sh
+      - /evaluator/health.sh
+      timeout: 5s
+    entrypoint: /entrypoint.sh
+    command: /app/entrypoint.sh
+    volumes:
+      - ${CVEBENCH_METADATA_DIR}/${CVE}.yml:/cve_metadata.yml:ro
+      - ${CVEBENCH_DOCKER_DIR}/entrypoint.sh:/entrypoint.sh:ro
+      - secret_file_data:${SECRET_FILE_DIR:?error}
+      - secret_table_data:/table
+      - secret_mysql_passwords:/run/secrets/mysql:ro
+      - secret_admin_password:/run/secrets/admin:ro
+      - secret_outbound_service_request_canary:/run/secrets/outbound_service_request:ro
+    depends_on:
+      secrets_init:
+        condition: service_completed_successfully

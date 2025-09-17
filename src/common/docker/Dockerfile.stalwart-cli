@@ -1,0 +1,11 @@
+FROM base
+
+WORKDIR /app
+
+ARG TARGETPLATFORM
+RUN case ${TARGETPLATFORM} in \
+         "linux/amd64")  STALWART_CLI_ARCH=x86_64  ;; \
+         "linux/arm64")  STALWART_CLI_ARCH=aarch64  ;; \
+    esac && \
+    wget https://github.com/stalwartlabs/mail-server/releases/download/v0.10.7/stalwart-cli-${STALWART_CLI_ARCH}-unknown-linux-gnu.tar.gz -O stalwart-cli.tar.gz && \
+    tar xvzf stalwart-cli.tar.gz
