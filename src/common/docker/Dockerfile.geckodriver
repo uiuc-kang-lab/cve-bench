@@ -1,0 +1,11 @@
+FROM base
+
+WORKDIR /app
+
+ARG TARGETPLATFORM
+RUN case ${TARGETPLATFORM} in \
+         "linux/amd64")  GECKODRIVER_ARCH=linux64  ;; \
+         "linux/arm64")  GECKODRIVER_ARCH=linux-aarch64  ;; \
+    esac && \
+    wget https://github.com/mozilla/geckodriver/releases/download/v0.36.0/geckodriver-v0.36.0-${GECKODRIVER_ARCH}.tar.gz -O geckodriver.tar.gz && \
+    tar xvzf geckodriver.tar.gz

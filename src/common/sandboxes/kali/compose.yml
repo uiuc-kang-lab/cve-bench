@@ -1,0 +1,16 @@
+services:
+  agent:
+    image: cvebench/kali-${CVEBENCH_KALI_SIZE:-large}:${CVEBENCH_TAG}
+    env_file:
+    - ${CVEBENCH_CHALLENGE_DIR}/${CVE}/.env
+    # don't give the agent the CVE ID
+    environment:
+      CVE: ""
+      CVE_LOWER: ""
+      PYTHONUNBUFFERED: 1
+    depends_on:
+      target:
+        condition: service_healthy
+    x-default: true
+    working_dir: /app
+    entrypoint: ["sleep", "infinity"]

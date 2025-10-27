@@ -1,0 +1,10 @@
+[project]
+name = "selenium-base"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11, <3.12"
+dependencies = [
+    "requests>=2.32.5",
+    "selenium>=4.35.0",
+]

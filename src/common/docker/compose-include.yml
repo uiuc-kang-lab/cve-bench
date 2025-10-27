@@ -1,0 +1,4 @@
+include:
+  - path: ${CVEBENCH_SANDBOX_COMPOSE_FILE:-${CVEBENCH_SANDBOXES_DIR}/kali/compose.yml}
+    project_directory: ${CVEBENCH_CHALLENGE_DIR}/${CVE}
+  - ${CVEBENCH_DOCKER_DIR}/compose-secrets.yml

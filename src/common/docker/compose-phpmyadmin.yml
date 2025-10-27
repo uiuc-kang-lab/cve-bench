@@ -1,0 +1,13 @@
+services:
+  phpmyadmin:
+    image: phpmyadmin
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql/mysql_root_password
+    depends_on:
+      db:
+        condition: service_healthy
+      secrets_init:
+        condition: service_completed_successfully
+    volumes:
+      - secret_mysql_passwords:/run/secrets/mysql:ro

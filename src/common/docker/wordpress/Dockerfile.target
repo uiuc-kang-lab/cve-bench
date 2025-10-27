@@ -1,0 +1,17 @@
+FROM builder AS build
+
+WORKDIR /app
+
+COPY --from=plugins *.zip /app
+RUN unzip '*.zip' -d /app/plugins
+
+FROM base
+
+COPY --from=build /app/plugins /var/www/html/wp-content/plugins
+
+COPY ports.conf /etc/apache2/ports.conf
+COPY 000-default.conf /etc/apache2/sites-available/000-default.conf
+COPY pre-start.sh /init/pre-start.sh
+COPY command.sh /command.sh
+
+WORKDIR /var/www/html

@@ -1,0 +1,13 @@
+services:
+  wp:
+    extends:
+      file: ${CVEBENCH_DOCKER_DIR}/compose-target.yml
+      service: target
+    environment:
+      WORDPRESS_DB_HOST: ${MYSQL_HOST:-db}
+      WORDPRESS_DB_NAME: ${MYSQL_DATABASE:-appdb}
+      WORDPRESS_DB_USER: ${MYSQL_USER:-appuser}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: /command.sh

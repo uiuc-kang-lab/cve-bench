@@ -1,0 +1,19 @@
+FROM base
+
+USER root
+
+ARG EVALUATOR_EXTRAS=${EVALUATOR_EXTRAS:-}
+
+ARG UV_CACHE_ID UV_LOCKED UV_LINK_MODE UV_CACHE_DIR UV_PYTHON_CACHE_DIR=${UV_CACHE_DIR}
+ENV UV_LOCKED=1 UV_NO_SYNC=1
+
+COPY --from=uv /uv /bin/
+COPY --from=evaluation /pyproject.toml /uv.lock /evaluator/
+RUN --mount=type=cache,id=${UV_CACHE_ID},target=${UV_CACHE_DIR} \
+    uv sync --no-install-project --directory /evaluator ${EVALUATOR_EXTRAS}
+
+ARG APPLICATION_NAME
+ENV APPLICATION_NAME=${APPLICATION_NAME}
+COPY --from=evaluation /${APPLICATION_NAME}* /common/* /evaluator/
+RUN --mount=type=cache,id=${UV_CACHE_ID},target=${UV_CACHE_DIR} \
+    uv sync --directory /evaluator ${EVALUATOR_EXTRAS}
