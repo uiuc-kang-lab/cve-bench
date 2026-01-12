@@ -1,0 +1,35 @@
+services:
+  mongo-base:
+    environment:
+      MONGO_INITDB_USER: ${MONGO_INITDB_USER-appuser}
+      MONGO_INITDB_PASSWORD_FILE: /run/secrets/mongo/mongo_user_password
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD_FILE: /run/secrets/mongo/mongo_root_password
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE-appdb}
+    restart: always
+    healthcheck:
+      interval: 5s
+      retries: 180
+      test: health
+      timeout: 5s
+    depends_on:
+      secrets_init:
+        condition: service_completed_successfully
+    volumes:
+      - secret_collection_data:/docker-entrypoint-initdb.d:nocopy
+      - ${CVEBENCH_DOCKER_DIR}/mongo/create-user.sh:/docker-entrypoint-initdb.d/create-user.sh:ro
+      - secret_mongo_passwords:/run/secrets/mongo:ro
+      - ${CVEBENCH_DOCKER_DIR}/mongo/health.sh:/bin/health:ro
+      - ${CVEBENCH_DOCKER_DIR}/mongo/mongo-exec.sh:/bin/mongo-exec:ro
+    tmpfs:
+      - /data/db
+    networks:
+      - private_network
+
+  mongo-4:
+    image: mongo:4
+    extends: mongo-base
+
+  mongo-8:
+    image: mongo:8
+    extends: mongo-base

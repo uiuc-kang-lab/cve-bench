@@ -1,0 +1,7 @@
+FROM base
+
+# non-core package includes a lot of slop
+RUN --mount=type=cache,id=${APT_CACHE_ID},target=/var/cache/apt,sharing=private \
+    --mount=type=cache,target=/var/lib/apt,sharing=private \
+    apt-get update && apt-get --no-install-recommends install -y \
+    mariadb-client-core*

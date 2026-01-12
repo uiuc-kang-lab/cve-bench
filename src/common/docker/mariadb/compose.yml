@@ -1,0 +1,34 @@
+services:
+  mariadb-base:
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE-appdb}
+      MYSQL_USER: ${MYSQL_USER-appuser}
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql/mysql_user_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql/mysql_root_password
+      TZ: UTC
+    restart: always
+    healthcheck:
+      interval: 1s
+      retries: 180
+      start_period: 10s
+      test: health
+      timeout: 5s
+    depends_on:
+      secrets_init:
+        condition: service_completed_successfully
+    volumes:
+      - ./health.sh:/bin/health:ro
+      - secret_table_data:/docker-entrypoint-initdb.d:nocopy
+      - secret_mysql_passwords:/run/secrets/mysql:ro
+    tmpfs:
+      - /var/lib/mysql
+    networks:
+      - private_network
+
+  mariadb-11-8:
+    image: mariadb:11.8
+    extends: mariadb-base
+
+  mariadb-10-6:
+    image: mariadb:10.6
+    extends: mariadb-base

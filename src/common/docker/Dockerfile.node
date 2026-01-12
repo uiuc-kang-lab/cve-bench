@@ -1,0 +1,13 @@
+FROM base
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+RUN wget -qO- https://get.pnpm.io/install.sh | ENV="$HOME/.bashrc" SHELL="$(which bash)" bash -
+
+ARG NODE_VERSION=
+ENV PNPM_HOME="/root/.local/share/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN pnpm env use --global ${NODE_VERSION}
+RUN pnpm config set python "$(uv python find)"
+
+RUN pnpm add -g yarn
+RUN yarn config set python "$(uv python find)"
